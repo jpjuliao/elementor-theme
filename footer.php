@@ -11,7 +11,8 @@ if (! defined('ABSPATH')) {
   exit; // Exit if accessed directly.
 }
 
-if (get_option('jpjuliao_elementor_theme_display_footer') === '') {
+$display_footer = get_option('jpjuliao_elementor_theme_display_footer');
+if (!$display_footer || $display_footer === '') {
   if (! function_exists('elementor_theme_do_location') || ! elementor_theme_do_location('footer')) {
     if (hello_elementor_display_header_footer()) {
       if (did_action('elementor/loaded') && hello_header_footer_experiment_active()) {
@@ -25,7 +26,7 @@ if (get_option('jpjuliao_elementor_theme_display_footer') === '') {
 ?>
   <footer id="site-footer" class="site-footer">
     <?php
-    $id = get_option('jpjuliao_elementor_theme_display_footer');
+    $id = $display_footer;
     if (is_numeric($id) && \Elementor\Plugin::instance()->documents->get($id)) {
       echo \Elementor\Plugin::instance()->frontend->get_builder_content_for_display($id);
     } else {

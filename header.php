@@ -34,7 +34,8 @@ $skip_link_url = apply_filters('hello_elementor_skip_link_url', '#content');
   <?php } ?>
 
   <?php
-  if (get_option('jpjuliao_elementor_theme_display_header') === '') {
+  $display_header = get_option('jpjuliao_elementor_theme_display_header');
+  if (!$display_header || $display_header === '') {
     if (! function_exists('elementor_theme_do_location') || ! elementor_theme_do_location('header')) {
       if (hello_elementor_display_header_footer()) {
         if (did_action('elementor/loaded') && hello_header_footer_experiment_active()) {
@@ -48,7 +49,7 @@ $skip_link_url = apply_filters('hello_elementor_skip_link_url', '#content');
   ?>
     <header id="site-header" class="site-header">
       <?php
-      $id = get_option('jpjuliao_elementor_theme_display_header');
+      $id = $display_header;
       if (is_numeric($id) && \Elementor\Plugin::instance()->documents->get($id)) {
         echo \Elementor\Plugin::instance()->frontend->get_builder_content_for_display($id);
       } else {
