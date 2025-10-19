@@ -231,5 +231,109 @@ class Elementor_Addon
    * generates the necessary JavaScript to initialize each carousel with its
    * specific configuration.
    */
-  public function print_slick_init_script() {}
+  public function print_slick_init_script()
+  {
+
+
+    if (is_admin()) {
+      return;
+    }
+
+    if (! is_singular()) {
+      return;
+    }
+
+    global $post;
+    if (empty($post)) {
+      return;
+    }
+
+    $documents = $this->get_documents();
+    if (! $documents) {
+      return;
+    }
+
+    $document = $documents->get($post->ID);
+    if (
+      ! $document
+      || ! method_exists($document, 'is_built_with_elementor')
+      || ! $document->is_built_with_elementor()
+    ) {
+      return;
+    }
+
+    if (! $this->has_slick_enabled($post->ID)) {
+      return;
+    }
+
+    $elements = $document->get_elements_data();
+    if (empty($elements) || ! is_array($elements)) {
+      return;
+    }
+
+    // Collect unique slider configs keyed by normalized selector.
+    $configs = [];
+    $stack = $elements;
+    while (! empty($stack)) {
+      $element = array_shift($stack);
+
+      $settings = isset($element['settings']) && is_array($element['settings']) ? $element['settings'] : [];
+
+      $activated = ($settings['activate_slick_slider'] ?? $element['activate_slick_slider'] ?? '') === 'yes';
+      if ($activated) {
+        $parent_class = trim((string) ($settings['slick_parent_class'] ?? $element['slick_parent_class'] ?? ''));
+
+        // If no parent class provided, skip (can't target an element).
+        if ($parent_class !== '') {
+          // normalize to a selector: if it doesn't start with '.' or '#' assume class
+          if ($parent_class[0] !== '.' && $parent_class[0] !== '#') {
+            $selector = '.' . ltrim($parent_class, '.#');
+          } else {
+            $selector = $parent_class;
+          }
+
+          $slides = isset($settings['slick_slides_to_show']) ? (int) $settings['slick_slides_to_show'] : 1;
+
+          // You can expand options here to include more settings from controls.
+          $options = [
+            'slidesToShow' => $slides,
+            'adaptiveHeight' => true,
+          ];
+
+          // Last encountered config for a selector wins.
+          $configs[$selector] = $options;
+        }
+      }
+
+      if (isset($element['elements']) && is_array($element['elements'])) {
+        foreach ($element['elements'] as $child) {
+          $stack[] = $child;
+        }
+      }
+    }
+
+    if (empty($configs)) {
+      return;
+    }
+
+    // Build JS to initialize each unique selector.
+    $inits = [];
+    foreach ($configs as $selector => $opts) {
+      $selector_js = json_encode($selector);
+      $opts_js = wp_json_encode($opts, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+      // avoid re-initializing already initialized sliders
+      $inits[] = "try{jQuery({$selector_js}).not('.slick-initialized').slick({$opts_js});}catch(e){}";
+    }
+
+    $init_js = 'jQuery(function($){' . implode('', $inits) . '});';
+
+    // Prefer attaching inline script to the slick-js handle so it prints after the library.
+    if (function_exists('wp_add_inline_script') && function_exists('wp_script_is') && wp_script_is('slick-js', 'enqueued')) {
+      wp_add_inline_script('slick-js', $init_js);
+      return;
+    }
+
+    // Fallback: echo the script directly in footer.
+    echo '<script type="text/javascript">' . $init_js . '</script>';
+  }
 }
