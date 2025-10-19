@@ -6,6 +6,7 @@ use Elementor\Controls_Manager;
 
 class Elementor_Addon
 {
+  private $documents = null;
 
   /**
    * Class constructor.
@@ -31,6 +32,26 @@ class Elementor_Addon
       'wp_footer',
       [$this, 'print_slick_init_script']
     );
+  }
+
+  /**
+   * Returns the documents manager.
+   *
+   * @return \Elementor\Core\Settings\Base\Documents\Manager The documents manager.
+   */
+  private function get_documents()
+  {
+    if ($this->documents !== null) {
+      return $this->documents;
+    }
+
+    if (! class_exists('\Elementor\Plugin')) {
+      $this->documents = null;
+      return null;
+    }
+
+    $this->documents = \Elementor\Plugin::$instance->documents;
+    return $this->documents;
   }
 
   /**
@@ -109,7 +130,22 @@ class Elementor_Addon
     }
 
     global $post;
-    if (empty($post) || !\Elementor\Plugin::$instance->db->is_built_with_elementor($post->ID)) {
+    if (empty($post)) {
+      return;
+    }
+
+    $documents = $this->get_documents();
+    $document = $documents ? $documents->get($post->ID) : null;
+
+    if (
+      ! $document
+      || ! method_exists($document, 'is_built_with_elementor')
+      || ! $document->is_built_with_elementor()
+    ) {
+      return;
+    }
+
+    if (! $this->has_slick_enabled($post->ID)) {
       return;
     }
 
@@ -138,13 +174,62 @@ class Elementor_Addon
   }
 
   /**
+   * Check whether any element in the Elementor document for $post_id
+   * has the activate_slick_slider control set to 'yes'.
+   *
+   * @param int $post_id
+   * @return bool
+   */
+  private function has_slick_enabled($post_id)
+  {
+    $documents = $this->get_documents();
+
+    if (! $documents) {
+      return false;
+    }
+
+    $document = $documents->get($post_id);
+
+    if (! $document) {
+      return false;
+    }
+
+    $elements = $document->get_elements_data();
+    if (empty($elements) || ! is_array($elements)) {
+      return false;
+    }
+
+    $stack = $elements;
+    while (! empty($stack)) {
+      $element = array_shift($stack);
+
+      // settings usually live under 'settings'
+      if (isset($element['settings']) && isset($element['settings']['activate_slick_slider']) && $element['settings']['activate_slick_slider'] === 'yes') {
+        return true;
+      }
+
+      // in case settings are at top-level (unlikely) check there
+      if (isset($element['activate_slick_slider']) && $element['activate_slick_slider'] === 'yes') {
+        return true;
+      }
+
+      // push nested elements to stack
+      if (isset($element['elements']) && is_array($element['elements'])) {
+        foreach ($element['elements'] as $child) {
+          $stack[] = $child;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  /**
    * Prints the slick initialization script in the footer.
    *
    * This function iterates through the collected slick slider settings and
    * generates the necessary JavaScript to initialize each carousel with its
    * specific configuration.
    */
-  public function print_slick_init_script()
-  {
-  }
+  public function print_slick_init_script() {}
 }
