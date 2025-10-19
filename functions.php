@@ -18,9 +18,13 @@ new Settings();
 require_once 'inc/shortcodes.php';
 new Shortcodes();
 
+// Elementor Section
+require_once 'inc/elementor-section.php';
+
 // Elementor Addon
 require_once 'inc/elementor-slick-section.php';
 new Elementor_Slick_Section();
+
 
 // Elementor Widgets
 require_once 'inc/elementor-widgets.php';
