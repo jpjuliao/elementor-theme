@@ -4,7 +4,7 @@ namespace JPJULIAO\Elementor_Theme;
 
 use Elementor\Controls_Manager;
 
-class Elementor_Addon
+class Elementor_Slick_Section
 {
   private $documents = null;
 

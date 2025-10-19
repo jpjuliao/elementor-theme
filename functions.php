@@ -2,6 +2,8 @@
 
 namespace JPJULIAO\Elementor_Theme;
 
+use Dom\Element;
+
 if (!defined('ABSPATH')) exit;
 
 // Theme Scripts
@@ -17,8 +19,8 @@ require_once 'inc/shortcodes.php';
 new Shortcodes();
 
 // Elementor Addon
-require_once 'inc/elementor-addon.php';
-new Elementor_Addon();
+require_once 'inc/elementor-slick-section.php';
+new Elementor_Slick_Section();
 
 // Elementor Widgets
 require_once 'inc/elementor-widgets.php';
