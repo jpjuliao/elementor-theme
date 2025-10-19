@@ -15,3 +15,11 @@ new Settings();
 // Theme Shortcodes
 require_once 'inc/shortcodes.php';
 new Shortcodes();
+
+// Elementor Addon
+require_once 'inc/elementor-addon.php';
+new Elementor_Addon();
+
+// Elementor Widgets
+require_once 'inc/elementor-widgets.php';
+new Elementor_Widgets();
