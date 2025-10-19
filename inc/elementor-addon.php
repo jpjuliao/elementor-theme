@@ -282,15 +282,24 @@ class Elementor_Addon
       $activated = ($settings['activate_slick_slider'] ?? $element['activate_slick_slider'] ?? '') === 'yes';
       if ($activated) {
         $parent_class = trim((string) ($settings['slick_parent_class'] ?? $element['slick_parent_class'] ?? ''));
-
+        
         // If no parent class provided, skip (can't target an element).
         if ($parent_class !== '') {
-          // normalize to a selector: if it doesn't start with '.' or '#' assume class
+          // normalize parent selector: if it doesn't start with '.' or '#' assume class
           if ($parent_class[0] !== '.' && $parent_class[0] !== '#') {
-            $selector = '.' . ltrim($parent_class, '.#');
+            $normalized_parent = '.' . ltrim($parent_class, '.#');
           } else {
-            $selector = $parent_class;
+            $normalized_parent = $parent_class;
           }
+
+          // prepend the current element's unique wrapper class so the selector is scoped
+          $unique_prefix = '';
+          if (! empty($element['id'])) {
+            $unique_prefix = '.elementor-element-' . $element['id'];
+          }
+
+          // Final selector: "<unique wrapper> <parent selector>"
+          $selector = trim($unique_prefix . ' ' . $normalized_parent);
 
           $slides = isset($settings['slick_slides_to_show']) ? (int) $settings['slick_slides_to_show'] : 1;
 
