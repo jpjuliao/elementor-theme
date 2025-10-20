@@ -108,20 +108,29 @@ class Elementor_Slick_Section extends Elementor_Section
   }
 
   /**
-   * Prints the Slick carousel init JavaScript code.
+   * Prints the initialization script for the slick slider.
    *
-   * The function will not do anything if the current page does not have at least one element with Slick slider enabled.
+   * The function first prepares the document using
+   * `prepare_for_frontend`. If the document is empty, it
+   * returns early.
    *
-   * The function will iterate through all the elements in the page, and for each element that has Slick slider enabled, it will generate the necessary JavaScript code to initialize the Slick carousel.
+   * Then, it checks if any of the elements in the document
+   * have the slick slider enabled. If none do, it returns early.
    *
-   * The function will then print the generated JavaScript code to the page.
+   * Next, it builds the slick slider configurations for all
+   * elements in the document and stores them in the `$configs`
+   * variable. If the `$configs` variable is empty, it returns
+   * early.
    *
-   * @since 1.0.0
+   * Finally, it builds the initialization script using the
+   * configurations and prints it out. If the `wp_add_inline_script`
+   * function is available and the slick-js script is already
+   * enqueued, it uses that function to add the initialization
+   * script. Otherwise, it simply echoes out the script.
    */
   public function print_init_script()
   {
     $document = $this->prepare_for_frontend();
-
     if (! $document) {
       return;
     }
@@ -135,39 +144,55 @@ class Elementor_Slick_Section extends Elementor_Section
       return;
     }
 
+    $configs = $this->build_slick_configs($elements);
+    if (empty($configs)) {
+      return;
+    }
+
+    $init_js = $this->build_init_js($configs);
+
+    if (
+      function_exists('wp_add_inline_script')
+      && function_exists('wp_script_is')
+      && wp_script_is('slick-js', 'enqueued')
+    ) {
+      wp_add_inline_script('slick-js', $init_js);
+      return;
+    }
+
+    echo '<script type="text/javascript">' . $init_js . '</script>';
+  }
+
+  /**
+   * Builds an array of slick configurations based on the given elements data.
+   *
+   * Iterates through the given elements data and checks if the 'activate_slick_slider' setting is enabled.
+   * If enabled, it builds a slick configuration array with the 'slick_parent_class' selector and the 'slick_slides_to_show' setting (defaulting to 1).
+   * The function also recursively iterates through the elements' children if they exist.
+   *
+   * @param array $elements The elements data to build the slick configurations from.
+   * @return array The array of slick configurations.
+   */
+  private function build_slick_configs(array $elements)
+  {
     $configs = [];
     $stack = $elements;
+
     while (! empty($stack)) {
+
       $element = array_shift($stack);
-
       $settings = isset($element['settings']) && is_array($element['settings']) ? $element['settings'] : [];
-
       $activated = ($settings['activate_slick_slider'] ?? $element['activate_slick_slider'] ?? '') === 'yes';
+
       if ($activated) {
-        $parent_class = trim((string) ($settings['slick_parent_class'] ?? $element['slick_parent_class'] ?? ''));
+        $selector = $this->normalize_selector('slick_parent_class', $element, $settings);
 
-        if ($parent_class !== '') {
-          if ($parent_class[0] !== '.' && $parent_class[0] !== '#') {
-            $normalized_parent = '.' . ltrim($parent_class, '.#');
-          } else {
-            $normalized_parent = $parent_class;
-          }
-
-          $unique_prefix = '';
-          if (! empty($element['id'])) {
-            $unique_prefix = '.elementor-element-' . $element['id'];
-          }
-
-          $selector = trim($unique_prefix . ' ' . $normalized_parent);
-
+        if ($selector !== '') {
           $slides = isset($settings['slick_slides_to_show']) ? (int) $settings['slick_slides_to_show'] : 1;
-
-          $options = [
+          $configs[$selector] = [
             'slidesToShow' => $slides,
             'adaptiveHeight' => true,
           ];
-
-          $configs[$selector] = $options;
         }
       }
 
@@ -178,25 +203,7 @@ class Elementor_Slick_Section extends Elementor_Section
       }
     }
 
-    if (empty($configs)) {
-      return;
-    }
-
-    $inits = [];
-    foreach ($configs as $selector => $opts) {
-      $selector_js = json_encode($selector);
-      $opts_js = wp_json_encode($opts, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-      $inits[] = "try{jQuery({$selector_js}).not('.slick-initialized').slick({$opts_js});}catch(e){}";
-    }
-
-    $init_js = 'jQuery(function($){' . implode('', $inits) . '});';
-
-    if (function_exists('wp_add_inline_script') && function_exists('wp_script_is') && wp_script_is('slick-js', 'enqueued')) {
-      wp_add_inline_script('slick-js', $init_js);
-      return;
-    }
-
-    echo '<script type="text/javascript">' . $init_js . '</script>';
+    return $configs;
   }
 
   /**
