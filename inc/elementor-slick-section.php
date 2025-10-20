@@ -19,11 +19,13 @@ class Elementor_Slick_Section extends Elementor_Section
   }
 
   /**
-   * Check if the given document has at least one element that has the Slick slider enabled.
+   * Check if the given document has at least one element that has the Slick
+   * slider enabled.
    *
    * @param \Elementor\Plugin\Documents\Document $document The document object.
    *
-   * @return bool True if at least one element in the document has Slick slider enabled, false otherwise.
+   * @return bool True if at least one element in the document has Slick slider
+   * enabled, false otherwise.
    */
   private function has_slick_enabled($document)
   {
@@ -65,8 +67,8 @@ class Elementor_Slick_Section extends Elementor_Section
   /**
    * Enqueue Slick carousel assets.
    *
-   * Checks if the current page has at least one element with Slick slider enabled,
-   * and if so, enqueues the Slick carousel CSS and JS assets.
+   * Checks if the current page has at least one element with Slick slider
+   * enabled, and if so, enqueues the Slick carousel CSS and JS assets.
    *
    * @since 1.0.0
    *
@@ -108,29 +110,14 @@ class Elementor_Slick_Section extends Elementor_Section
   }
 
   /**
-   * Prints the initialization script for the slick slider.
-   *
-   * The function first prepares the document using
-   * `prepare_for_frontend`. If the document is empty, it
-   * returns early.
-   *
-   * Then, it checks if any of the elements in the document
-   * have the slick slider enabled. If none do, it returns early.
-   *
-   * Next, it builds the slick slider configurations for all
-   * elements in the document and stores them in the `$configs`
-   * variable. If the `$configs` variable is empty, it returns
-   * early.
-   *
-   * Finally, it builds the initialization script using the
-   * configurations and prints it out. If the `wp_add_inline_script`
-   * function is available and the slick-js script is already
-   * enqueued, it uses that function to add the initialization
-   * script. Otherwise, it simply echoes out the script.
+   * Prints the initialization script for the Slick carousel.
+   * @since 1.0.0
+   * @access public
    */
   public function print_init_script()
   {
     $document = $this->prepare_for_frontend();
+
     if (! $document) {
       return;
     }
@@ -140,6 +127,7 @@ class Elementor_Slick_Section extends Elementor_Section
     }
 
     $elements = $document->get_elements_data();
+
     if (empty($elements) || ! is_array($elements)) {
       return;
     }
@@ -149,7 +137,7 @@ class Elementor_Slick_Section extends Elementor_Section
       return;
     }
 
-    $init_js = $this->build_init_js($configs);
+    $init_js = $this->build_init_js('container', $configs);
 
     if (
       function_exists('wp_add_inline_script')
@@ -159,18 +147,21 @@ class Elementor_Slick_Section extends Elementor_Section
       wp_add_inline_script('slick-js', $init_js);
       return;
     }
-
-    echo '<script type="text/javascript">' . $init_js . '</script>';
   }
 
   /**
    * Builds an array of slick configurations based on the given elements data.
    *
-   * Iterates through the given elements data and checks if the 'activate_slick_slider' setting is enabled.
-   * If enabled, it builds a slick configuration array with the 'slick_parent_class' selector and the 'slick_slides_to_show' setting (defaulting to 1).
-   * The function also recursively iterates through the elements' children if they exist.
+   * Iterates through the given elements data and checks if the
+   * 'activate_slick_slider' setting is enabled.
+   * If enabled, it builds a slick configuration array with the
+   * 'slick_parent_class' selector and the 'slick_slides_to_show' setting
+   * (defaulting to 1).
+   * The function also recursively iterates through the elements' children if
+   * they exist.
    *
-   * @param array $elements The elements data to build the slick configurations from.
+   * @param array $elements The elements data to build the slick configurations
+   * from.
    * @return array The array of slick configurations.
    */
   private function build_slick_configs(array $elements)
@@ -181,14 +172,28 @@ class Elementor_Slick_Section extends Elementor_Section
     while (! empty($stack)) {
 
       $element = array_shift($stack);
-      $settings = isset($element['settings']) && is_array($element['settings']) ? $element['settings'] : [];
-      $activated = ($settings['activate_slick_slider'] ?? $element['activate_slick_slider'] ?? '') === 'yes';
+
+      $settings = isset($element['settings'])
+        && is_array($element['settings'])
+        ? $element['settings'] : [];
+
+      $activated = (
+        $settings['activate_slick_slider'] ??
+        $element['activate_slick_slider'] ?? ''
+      ) === 'yes';
 
       if ($activated) {
-        $selector = $this->normalize_selector('slick_parent_class', $element, $settings);
+        $selector = $this->normalize_selector(
+          'slick_parent_class',
+          $element,
+          $settings
+        );
 
         if ($selector !== '') {
-          $slides = isset($settings['slick_slides_to_show']) ? (int) $settings['slick_slides_to_show'] : 1;
+
+          $slides = isset($settings['slick_slides_to_show'])
+            ? (int) $settings['slick_slides_to_show'] : 1;
+
           $configs[$selector] = [
             'slidesToShow' => $slides,
             'adaptiveHeight' => true,

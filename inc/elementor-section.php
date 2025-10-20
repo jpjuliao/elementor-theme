@@ -69,13 +69,17 @@ abstract class Elementor_Section
    * Normalize a CSS selector string by prepending a unique prefix and handling
    * the parent class string.
    *
-   * @param string $parent_class The parent class string from the settings or element.
+   * @param string $parent_class The parent class string from the settings or
+   * element.
    * @param array $element The current element being processed.
    * @param array $settings The settings array for the current element.
    * @return string The normalized CSS selector string.
    */
-  protected function normalize_selector(string $parent_class, array $element, array $settings)
-  {
+  protected function normalize_selector(
+    string $parent_class,
+    array $element,
+    array $settings
+  ) {
     $parent_class = trim((string) ($settings[$parent_class] ?? $element[$parent_class] ?? ''));
 
     if ($parent_class === '') {
@@ -101,18 +105,32 @@ abstract class Elementor_Section
    * Builds the initialization JavaScript code for the given configurations.
    *
    * @param array $configs The configurations to be used for initializing the
-   *                            slick slider.
+   * slick slider.
    * @return string The initialization JavaScript code.
    */
-  protected function build_init_js(array $configs)
+  protected function build_init_js(string $widget, array $configs)
   {
     $configs_json = wp_json_encode(
       $configs,
       JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
     );
 
-    $cl = 'console.log("Slick Slider Init");';
-
-    return 'jQuery(function($){try{'.$cl.'var cfg=' . $configs_json . ';for(var s in cfg){try{$(s).not(\'.slick-initialized\').slick(cfg[s]);}catch(e){}}}catch(e){}});';
+    return "
+      jQuery(function($){
+        function init() {
+          var cfg=" . $configs_json . ";
+          for (var s in cfg) {
+            try { $(s).not('.slick-initialized').slick(cfg[s]); } 
+            catch(e) {}
+          }
+        }
+        $(document).ready(init());
+        elementorFrontend.hooks.addAction(
+          'frontend/element_ready/" . $widget . "', (scope) => {
+            init();
+          }
+        );
+      });
+    ";
   }
 }
